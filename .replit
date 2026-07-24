@@ -1,0 +1,42 @@
+modules = ["nodejs-20", "web"]
+[agent]
+expertMode = true
+stack = "BEST_EFFORT_FALLBACK"
+
+[userenv]
+
+[userenv.shared]
+AUTH_TRUST_HOST = "1"
+NEXTAUTH_URL = "https://da88873f-f52c-4cd2-8fad-8e7a6bc55ea0-00-i2qmuem7zyag.kirk.replit.dev"
+AUTH_URL = "https://da88873f-f52c-4cd2-8fad-8e7a6bc55ea0-00-i2qmuem7zyag.kirk.replit.dev"
+
+[nix]
+channel = "stable-25_05"
+
+[workflows]
+runButton = "Project"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Start application"
+
+[[workflows.workflow]]
+name = "Start application"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm run dev"
+waitForPort = 5000
+
+[workflows.workflow.metadata]
+outputType = "webview"
+
+[[ports]]
+localPort = 5000
+externalPort = 80

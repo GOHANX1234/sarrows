@@ -1,0 +1,42 @@
+import { NextRequest, NextResponse } from "next/server";
+import { connectDB } from "@/lib/db";
+import Series from "@/models/Series";
+import Genre from "@/models/Genre";
+import { escapeRegex } from "@/lib/utils";
+
+export async function GET(req: NextRequest) {
+  try {
+    await connectDB();
+    const { searchParams } = req.nextUrl;
+    const genre = searchParams.get("genre");
+    const sort = searchParams.get("sort") || "latest";
+    const status = searchParams.get("status");
+    const type = searchParams.get("type") || "anime";
+    const page = Math.max(1, parseInt(searchParams.get("page") || "1"));
+    const limit = Math.min(50, parseInt(searchParams.get("limit") || "24"));
+    const skip = (page - 1) * limit;
+
+    const filter: any = { publishStatus: "published", type };
+    if (genre) {
+      const safeGenre = escapeRegex(genre.slice(0, 50));
+      const g = await Genre.findOne({ name: { $regex: new RegExp(`^${safeGenre}$`, "i") } });
+      if (g) filter.genres = g._id;
+    }
+    if (status && ["ongoing", "completed"].includes(status)) filter.status = status;
+
+    const sortMap: Record<string, any> = {
+      latest: { createdAt: -1 },
+      views: { views: -1 },
+      rating: { rating: -1 },
+    };
+
+    const [series, total] = await Promise.all([
+      Series.find(filter).sort(sortMap[sort] || { createdAt: -1 }).skip(skip).limit(limit).populate("genres", "name").lean(),
+      Series.countDocuments(filter),
+    ]);
+
+    return NextResponse.json({ series, total, page, totalPages: Math.ceil(total / limit) });
+  } catch {
+    return NextResponse.json({ error: "Server error" }, { status: 500 });
+  }
+}
