@@ -23,7 +23,7 @@ export async function GET() {
 
     if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
-    const u = user as {
+    const u = user as unknown as {
       _id: unknown;
       nickname: string;
       email: string;
