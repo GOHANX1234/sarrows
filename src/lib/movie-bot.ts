@@ -294,23 +294,34 @@ async function tick() {
     }
 
     // ── 12. Create Movie ──────────────────────────────────────────────────
-    const movie = await Movie.create({
-      title:       finalTitle,
-      slug,
-      description: aiResult.correctedDescription || foundMovie.description || "",
-      posterUrl:   foundMovie.posterUrl  || "",
-      bannerUrl:   foundMovie.bannerUrl  || "",
-      trailerUrl:  trailerUrl || "",
-      videoUrl,
-      videoType,
-      externalId:  foundMovie.externalId,
-      duration:    duration ?? undefined,
-      releaseYear: finalYear ?? undefined,
-      genres:      genreIds,
-      cast,
-      rating:      foundMovie.rating ? parseFloat(foundMovie.rating.toFixed(1)) : 0,
-      status:      "published",
-    });
+    let movie: any;
+    try {
+      movie = await Movie.create({
+        title:       finalTitle,
+        slug,
+        description: aiResult.correctedDescription || foundMovie.description || "",
+        posterUrl:   foundMovie.posterUrl  || "",
+        bannerUrl:   foundMovie.bannerUrl  || "",
+        trailerUrl:  trailerUrl || "",
+        videoUrl,
+        videoType,
+        externalId:  foundMovie.externalId,
+        duration:    duration ?? undefined,
+        releaseYear: finalYear ?? undefined,
+        genres:      genreIds,
+        cast,
+        rating:      foundMovie.rating ? parseFloat(foundMovie.rating.toFixed(1)) : 0,
+        status:      "published",
+      });
+    } catch (createErr: any) {
+      // MongoDB duplicate key error (code 11000) — race condition between
+      // the findOne guard above and this create. Silently skip; not a failure.
+      if (createErr?.code === 11000) {
+        console.log(`[MovieBot] Duplicate key race — "${foundMovie.title}" (${foundMovie.externalId}) skipped`);
+        return;
+      }
+      throw createErr; // re-throw anything else
+    }
 
     // ── 13. Log to BotJob (uploads + failures only, never duplicates) ─────
     await BotJob.create({
