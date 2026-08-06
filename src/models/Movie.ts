@@ -17,7 +17,7 @@ const MovieSchema = new Schema(
     // recognizable file extension (many CDN links don't). Defaults to
     // extension-sniffing ("auto") if not set.
     videoType: { type: String, enum: ["auto", "hls", "direct", "embed"], default: "auto", select: false },
-    externalId: String,
+    externalId: { type: String, index: true, sparse: true, unique: true },
     duration: Number,
     releaseYear: Number,
     genres: [{ type: Schema.Types.ObjectId, ref: "Genre" }],
