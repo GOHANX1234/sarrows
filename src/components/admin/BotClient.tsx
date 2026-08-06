@@ -23,6 +23,8 @@ interface BotConfig {
   currentSourceIdx: number;
   currentPage: number;
   currentMovieIdx: number;
+  stopAfterMs: number | null;
+  scheduledStopAt: string | null;
 }
 
 interface BotJob {
@@ -405,11 +407,35 @@ function HistoryTable({ botEnabled }: { botEnabled: boolean }) {
   );
 }
 
+// ── Duration presets ──────────────────────────────────────────────────────────
+const DURATION_PRESETS = [
+  { label: "No limit",   ms: 0 },
+  { label: "15 min",     ms: 15 * 60 * 1000 },
+  { label: "30 min",     ms: 30 * 60 * 1000 },
+  { label: "1 hour",     ms: 60 * 60 * 1000 },
+  { label: "2 hours",    ms: 2 * 60 * 60 * 1000 },
+  { label: "4 hours",    ms: 4 * 60 * 60 * 1000 },
+  { label: "8 hours",    ms: 8 * 60 * 60 * 1000 },
+  { label: "24 hours",   ms: 24 * 60 * 60 * 1000 },
+];
+
+function formatCountdown(ms: number): string {
+  if (ms <= 0) return "stopping…";
+  const h = Math.floor(ms / 3_600_000);
+  const m = Math.floor((ms % 3_600_000) / 60_000);
+  const s = Math.floor((ms % 60_000) / 1_000);
+  if (h > 0) return `${h}h ${m.toString().padStart(2, "0")}m ${s.toString().padStart(2, "0")}s`;
+  if (m > 0) return `${m}m ${s.toString().padStart(2, "0")}s`;
+  return `${s}s`;
+}
+
 // ── Main ──────────────────────────────────────────────────────────────────────
 export default function BotClient({ initialConfig, initialStatusCounts }: Props) {
   const [config, setConfig] = useState<BotConfig>(initialConfig);
   const [toggling, setToggling] = useState(false);
   const [resetting, setResetting] = useState(false);
+  const [selectedDurationMs, setSelectedDurationMs] = useState<number>(0); // 0 = no limit
+  const [countdown, setCountdown] = useState<number | null>(null);
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
 
   const fetchConfig = useCallback(async () => {
@@ -427,13 +453,30 @@ export default function BotClient({ initialConfig, initialStatusCounts }: Props)
     return () => { if (pollingRef.current) clearInterval(pollingRef.current); };
   }, [config.enabled, fetchConfig]);
 
+  // Live countdown ticker
+  useEffect(() => {
+    if (!config.enabled || !config.scheduledStopAt) {
+      setCountdown(null);
+      return;
+    }
+    const tick = () => {
+      const remaining = new Date(config.scheduledStopAt!).getTime() - Date.now();
+      setCountdown(Math.max(0, remaining));
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [config.enabled, config.scheduledStopAt]);
+
   async function toggleBot() {
     setToggling(true);
     try {
+      const body: any = { enabled: !config.enabled };
+      if (!config.enabled && selectedDurationMs > 0) body.stopAfterMs = selectedDurationMs;
       const r = await fetch("/api/admin/bot/config", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ enabled: !config.enabled }),
+        body: JSON.stringify(body),
       });
       if (r.ok) setConfig(await r.json());
     } finally { setToggling(false); }
@@ -463,10 +506,22 @@ export default function BotClient({ initialConfig, initialStatusCounts }: Props)
             <p className="text-xs text-gray-500 mt-0.5">Auto-discovers from TMDB · AI verified · 1 movie / 10s</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap justify-end">
           <button onClick={resetStats} disabled={resetting} title="Reset stats" className="p-2 rounded-xl hover:bg-white/8 text-gray-500 hover:text-white transition">
             {resetting ? <Loader2 className="w-4 h-4 animate-spin" /> : <BarChart3 className="w-4 h-4" />}
           </button>
+          {/* Duration picker — only visible when bot is stopped */}
+          {!config.enabled && (
+            <select
+              value={selectedDurationMs}
+              onChange={e => setSelectedDurationMs(Number(e.target.value))}
+              className="text-xs px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-gray-300 focus:outline-none focus:border-sarrows-red/40 transition cursor-pointer"
+            >
+              {DURATION_PRESETS.map(p => (
+                <option key={p.ms} value={p.ms}>{p.label}</option>
+              ))}
+            </select>
+          )}
           <button
             onClick={toggleBot}
             disabled={toggling}
@@ -528,6 +583,17 @@ export default function BotClient({ initialConfig, initialStatusCounts }: Props)
         {config.lastActivity && (
           <div className="text-gray-500" suppressHydrationWarning>
             {new Date(config.lastActivity).toISOString().replace("T", " ").slice(0, 19)} UTC
+          </div>
+        )}
+        {countdown !== null && (
+          <div className="flex items-center gap-1.5 text-yellow-400 font-medium">
+            <Clock className="w-3 h-3 shrink-0" />
+            Auto-stops in <span className="tabular-nums">{formatCountdown(countdown)}</span>
+          </div>
+        )}
+        {config.enabled && !config.scheduledStopAt && (
+          <div className="text-gray-600 flex items-center gap-1.5">
+            <Clock className="w-3 h-3 shrink-0" /> No time limit
           </div>
         )}
         {config.lastError && (
