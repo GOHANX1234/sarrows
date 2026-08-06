@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { X, AlertTriangle, ExternalLink } from "lucide-react";
+import { X, AlertTriangle, ExternalLink, Smartphone } from "lucide-react";
 
 const STORAGE_KEY = "sarrows_disclaimer_seen";
+const ANDROID_VERSION_KEY = "sarrows_android_dl";
 
 /** All focusable elements inside a container */
 const FOCUSABLE = [
@@ -17,6 +18,7 @@ const FOCUSABLE = [
 
 export default function DisclaimerDialog() {
   const [open, setOpen] = useState(false);
+  const [androidUrl, setAndroidUrl] = useState<string | null>(null);
   const panelRef   = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<Element | null>(null); // element that had focus before open
 
@@ -27,6 +29,29 @@ export default function DisclaimerDialog() {
     } catch {
       setOpen(true); // storage blocked (private browsing) — show anyway
     }
+  }, []);
+
+  /* ── Fetch latest Android download URL ─────────────── */
+  useEffect(() => {
+    // Try cache first
+    try {
+      const cached = sessionStorage.getItem(ANDROID_VERSION_KEY);
+      if (cached) { setAndroidUrl(cached); return; }
+    } catch { /* ignore */ }
+
+    fetch("/api/app/version/check", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ versionCode: 0, platform: "android" }),
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        if (data?.downloadUrl) {
+          setAndroidUrl(data.downloadUrl);
+          try { sessionStorage.setItem(ANDROID_VERSION_KEY, data.downloadUrl); } catch { /* ignore */ }
+        }
+      })
+      .catch(() => { /* silently fail — promo just won't show */ });
   }, []);
 
   /* ── On open: save focused element, lock scroll, focus panel ── */
@@ -155,6 +180,34 @@ export default function DisclaimerDialog() {
           <p className="text-gray-500 text-xs">
             We recommend using an ad-blocker for a better experience.
           </p>
+
+          {/* Android app promo — only rendered when download URL is available */}
+          {androidUrl && (
+            <div
+              className="rounded-xl px-4 py-3 text-left flex items-start gap-3 mt-1"
+              style={{ background: "rgba(229,9,20,0.08)", border: "1px solid rgba(229,9,20,0.2)" }}
+            >
+              <Smartphone className="w-5 h-5 text-sarrows-red shrink-0 mt-0.5" aria-hidden="true" />
+              <div>
+                <p className="text-gray-200 text-xs font-semibold mb-0.5">
+                  Want an ad-free experience?
+                </p>
+                <p className="text-gray-400 text-xs leading-relaxed">
+                  Download our{" "}
+                  <a
+                    href={androidUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sarrows-red font-semibold hover:underline"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    Android app
+                  </a>{" "}
+                  for a completely ad-free streaming experience.
+                </p>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Primary CTA */}
