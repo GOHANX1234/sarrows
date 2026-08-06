@@ -85,11 +85,12 @@ async function getCatalogPreview(): Promise<CatalogItem[]> {
       Series.find({ publishStatus: "published", posterUrl: { $exists: true, $ne: "" } })
         .sort({ createdAt: -1 })
         .limit(8)
-        .select("title slug description posterUrl bannerUrl")
+        .select("title slug description posterUrl bannerUrl type")
         .lean(),
     ]);
-    const tag = (arr: any[], type: "movie" | "anime") => arr.map((d) => ({ ...d, type }));
-    return serialize([...tag(movies, "movie"), ...tag(series, "anime")]) as unknown as CatalogItem[];
+    const tagMovies = movies.map((d: any) => ({ ...d, type: "movie" }));
+    const tagSeries = series.map((d: any) => ({ ...d, type: d.type === "series" ? "series" : "anime" }));
+    return serialize([...tagMovies, ...tagSeries]) as unknown as CatalogItem[];
   } catch {
     return [];
   }
