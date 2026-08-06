@@ -1,0 +1,47 @@
+modules = ["nodejs-20", "web"]
+[agent]
+expertMode = true
+stack = "BEST_EFFORT_FALLBACK"
+
+[userenv]
+
+[userenv.shared]
+AUTH_TRUST_HOST = "1"
+NEXTAUTH_URL = "https://99f0cf64-f8dc-41bd-907b-e51e61bc9d30-00-yfwo63rip4zk.pike.replit.dev/"
+AUTH_URL = "https://99f0cf64-f8dc-41bd-907b-e51e61bc9d30-00-yfwo63rip4zk.pike.replit.dev/"
+MONGODB_URI = "mongodb+srv://replgg387_db_user:9TztU46D6KDfQXXO@cluster0.qmqgkit.mongodb.net/ssr?appName=Cluster0"
+AUTH_SECRET = "sarrows-super-secret-key-change-in-production-2026"
+NEXTAUTH_SECRET = "sarrows-super-secret-key-change-in-production-2026"
+TMDB_API_KEY = "55708ca47d6a470c36d9137bec007064"
+PUBLIC_APP_URL = "https://sarrows.vercel.app"
+
+[nix]
+channel = "stable-25_05"
+
+[workflows]
+runButton = "Project"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Start application"
+
+[[workflows.workflow]]
+name = "Start application"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm run dev"
+waitForPort = 5000
+
+[workflows.workflow.metadata]
+outputType = "webview"
+
+[[ports]]
+localPort = 5000
+externalPort = 80
