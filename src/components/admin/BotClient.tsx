@@ -4,7 +4,9 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import {
   Bot, Play, Square, Trash2, RefreshCw, AlertCircle,
   CheckCircle2, Clock, Loader2, Zap, BarChart3,
-  XCircle, Settings2, Film, TrendingUp, Star, CalendarDays, Flame
+  XCircle, Settings2, Film, TrendingUp, Star, CalendarDays, Flame,
+  Sword, Ghost, Laugh, Crosshair, Rocket, Clapperboard, Drama,
+  Heart, ShieldAlert, FileVideo, Compass, Sparkles, Search, Bomb
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -59,22 +61,33 @@ interface Props {
 
 // ── Source config ─────────────────────────────────────────────────────────────
 const ALL_SOURCES = [
-  { id: "popular",       label: "Popular",           icon: Film },
-  { id: "trending_day",  label: "Trending Today",    icon: Flame },
-  { id: "trending_week", label: "Trending This Week",icon: TrendingUp },
-  { id: "top_rated",     label: "Top Rated",         icon: Star },
-  { id: "now_playing",   label: "Now Playing",       icon: CalendarDays },
-  { id: "upcoming",      label: "Upcoming",          icon: CalendarDays },
+  // Lists
+  { id: "popular",           label: "Popular",            icon: Film,        group: "Lists" },
+  { id: "trending_day",      label: "Trending Today",     icon: Flame,       group: "Lists" },
+  { id: "trending_week",     label: "Trending This Week", icon: TrendingUp,  group: "Lists" },
+  { id: "top_rated",         label: "Top Rated",          icon: Star,        group: "Lists" },
+  { id: "now_playing",       label: "Now Playing",        icon: CalendarDays,group: "Lists" },
+  { id: "upcoming",          label: "Upcoming",           icon: CalendarDays,group: "Lists" },
+  // Genres
+  { id: "genre_action",      label: "Action",             icon: Sword,       group: "Genres" },
+  { id: "genre_adventure",   label: "Adventure",          icon: Compass,     group: "Genres" },
+  { id: "genre_animation",   label: "Animation",          icon: Clapperboard,group: "Genres" },
+  { id: "genre_comedy",      label: "Comedy",             icon: Laugh,       group: "Genres" },
+  { id: "genre_crime",       label: "Crime",              icon: Crosshair,   group: "Genres" },
+  { id: "genre_documentary", label: "Documentary",        icon: FileVideo,   group: "Genres" },
+  { id: "genre_drama",       label: "Drama",              icon: Drama,       group: "Genres" },
+  { id: "genre_fantasy",     label: "Fantasy",            icon: Sparkles,    group: "Genres" },
+  { id: "genre_horror",      label: "Horror",             icon: Ghost,       group: "Genres" },
+  { id: "genre_mystery",     label: "Mystery",            icon: Search,      group: "Genres" },
+  { id: "genre_romance",     label: "Romance",            icon: Heart,       group: "Genres" },
+  { id: "genre_scifi",       label: "Sci-Fi",             icon: Rocket,      group: "Genres" },
+  { id: "genre_thriller",    label: "Thriller",           icon: ShieldAlert, group: "Genres" },
+  { id: "genre_war",         label: "War",                icon: Bomb,        group: "Genres" },
 ];
 
-const SOURCE_LABEL: Record<string, string> = {
-  popular: "Popular",
-  trending_day: "Trending Today",
-  trending_week: "Trending This Week",
-  top_rated: "Top Rated",
-  now_playing: "Now Playing",
-  upcoming: "Upcoming",
-};
+const SOURCE_LABEL: Record<string, string> = Object.fromEntries(
+  ALL_SOURCES.map((s) => [s.id, s.label])
+);
 
 // ── Status badge ──────────────────────────────────────────────────────────────
 const STATUS_STYLES: Record<string, string> = {
@@ -216,26 +229,33 @@ function SourceSettings({ config, onSave }: { config: BotConfig; onSave: (cfg: B
       </div>
       <p className="text-xs text-gray-500">The bot cycles through these TMDB lists automatically, uploading one movie every 10 seconds.</p>
 
-      <div className="space-y-2">
-        {ALL_SOURCES.map(({ id, label, icon: Icon }) => (
-          <label key={id} className="flex items-center gap-3 cursor-pointer group">
-            <div
-              onClick={() => toggle(id)}
-              className={cn(
-                "w-4 h-4 rounded flex items-center justify-center border transition-all shrink-0",
-                selected.includes(id)
-                  ? "bg-sarrows-red border-sarrows-red"
-                  : "border-white/20 bg-transparent"
-              )}
-            >
-              {selected.includes(id) && <CheckCircle2 className="w-3 h-3 text-white" />}
+      <div className="space-y-4">
+        {(["Lists", "Genres"] as const).map((group) => (
+          <div key={group}>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-gray-600 mb-2">{group}</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+              {ALL_SOURCES.filter((s) => s.group === group).map(({ id, label, icon: Icon }) => (
+                <label key={id} className="flex items-center gap-2.5 cursor-pointer group">
+                  <div
+                    onClick={() => toggle(id)}
+                    className={cn(
+                      "w-4 h-4 rounded flex items-center justify-center border transition-all shrink-0",
+                      selected.includes(id)
+                        ? "bg-sarrows-red border-sarrows-red"
+                        : "border-white/20 bg-transparent"
+                    )}
+                  >
+                    {selected.includes(id) && <CheckCircle2 className="w-3 h-3 text-white" />}
+                  </div>
+                  <Icon className="w-3.5 h-3.5 text-gray-500 group-hover:text-gray-300 transition shrink-0" />
+                  <span className="text-sm text-gray-300 group-hover:text-white transition">{label}</span>
+                  {config.sources?.[config.currentSourceIdx % config.sources.length] === id && config.enabled && (
+                    <span className="text-[10px] text-green-400 font-bold animate-pulse">● NOW</span>
+                  )}
+                </label>
+              ))}
             </div>
-            <Icon className="w-3.5 h-3.5 text-gray-500 group-hover:text-gray-300 transition" />
-            <span className="text-sm text-gray-300 group-hover:text-white transition">{label}</span>
-            {config.sources?.[config.currentSourceIdx % config.sources.length] === id && config.enabled && (
-              <span className="text-[10px] text-green-400 font-bold animate-pulse">● NOW</span>
-            )}
-          </label>
+          </div>
         ))}
       </div>
 
