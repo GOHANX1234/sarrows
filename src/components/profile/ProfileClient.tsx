@@ -143,11 +143,13 @@ export default function ProfileClient({ user, history, isOwner }: Props) {
                     } else {
                       // Episode — seriesDoc is attached by the server
                       const sd = content?.seriesDoc;
+                      const seriesType: string = sd?.type || "anime"; // "anime" | "series"
+                      const seriesBase = seriesType === "series" ? "series" : "anime";
                       if (sd?.slug && content?._id) {
-                        href = `/anime/${sd.slug}/episode/${content._id}`;
+                        href = `/${seriesBase}/${sd.slug}/episode/${content._id}`;
                       }
                       poster = sd?.posterUrl || content?.posterUrl || null;
-                      title = sd?.title || content?.title || "Anime";
+                      title = sd?.title || content?.title || (seriesType === "series" ? "Web Series" : "Anime");
                       if (content?.title && sd?.title && content.title !== sd.title) {
                         subtitle = content.title;
                       } else if (content?.episodeNumber) {
@@ -175,8 +177,8 @@ export default function ProfileClient({ user, history, isOwner }: Props) {
 
                         {/* Info */}
                         <div className="flex-1 min-w-0">
-                          <span className={`text-[10px] font-bold uppercase tracking-wider ${isMovie ? "text-blue-400" : "text-purple-400"}`}>
-                            {isMovie ? "Movie" : "Anime"}
+                          <span className={`text-[10px] font-bold uppercase tracking-wider ${isMovie ? "text-blue-400" : (content?.seriesDoc?.type === "series" ? "text-pink-400" : "text-purple-400")}`}>
+                            {isMovie ? "Movie" : (content?.seriesDoc?.type === "series" ? "Web Series" : "Anime")}
                           </span>
                           <p className="text-sm font-semibold text-white truncate mt-0.5 group-hover:text-sarrows-red transition-colors">
                             {title}
