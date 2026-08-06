@@ -201,13 +201,30 @@ async function tick() {
       return;
     }
 
-    // ── 4. Add to known set immediately (prevents re-processing this ID) ───
+    // ── 4. Release-date gate — skip unreleased movies entirely ────────────
+    // TMDB sends the exact release_date for every movie. We use that as the
+    // authoritative source — much more reliable than asking the AI.
+    const todayStr = new Date().toISOString().slice(0, 10); // "YYYY-MM-DD"
+    const releaseDate = foundMovie.releaseDate ?? null;
+
+    if (!releaseDate || releaseDate > todayStr) {
+      // Movie hasn't been released yet — add to known set so we never revisit
+      // it during this session, but don't upload and don't create a BotJob.
+      knownExternalIds.add(foundMovie.externalId);
+      console.log(
+        `[MovieBot] Skipping "${foundMovie.title}" — not yet released` +
+          (releaseDate ? ` (releases ${releaseDate})` : " (no release date)")
+      );
+      return;
+    }
+
+    // ── 5. Add to known set immediately (prevents re-processing this ID) ───
     knownExternalIds.add(foundMovie.externalId);
 
     const currentSource = sources[sourceIdx % sources.length];
     console.log(`[MovieBot] Processing "${foundMovie.title}" (TMDB ${foundMovie.externalId}) from ${SOURCE_LABEL[currentSource] ?? currentSource}`);
 
-    // ── 5. Fetch full TMDB details ─────────────────────────────────────────
+    // ── 6. Fetch full TMDB details ─────────────────────────────────────────
     let genreNames: string[] = [];
     let cast: any[] = [];
     let trailerUrl: string | null = null;
@@ -224,11 +241,11 @@ async function tick() {
       console.warn(`[MovieBot] TMDB detail fetch failed for ${foundMovie.externalId}:`, e?.message);
     }
 
-    // ── 6. Build VidNest embed URL (same as admin panel) ──────────────────
+    // ── 7. Build VidNest embed URL (same as admin panel) ──────────────────
     const videoUrl  = `${VIDNEST_BASE}/${foundMovie.externalId}`;
     const videoType = "embed";
 
-    // ── 7. AI verification ─────────────────────────────────────────────────
+    // ── 8. AI verification ─────────────────────────────────────────────────
     const aiResult = await verifyMovieWithAI({
       title:       foundMovie.title,
       description: foundMovie.description,
@@ -244,7 +261,7 @@ async function tick() {
     const finalYear  = aiResult.correctedYear  && aiResult.confidence >= 70
       ? aiResult.correctedYear  : foundMovie.releaseYear;
 
-    // ── 8. Resolve/create genres ──────────────────────────────────────────
+    // ── 9. Resolve/create genres ──────────────────────────────────────────
     let genreIds: any[] = [];
     if (genreNames.length) {
       const existing = await Genre.find({
@@ -264,12 +281,12 @@ async function tick() {
       genreIds = [...existing.map((g: any) => g._id), ...created.map((g: any) => g._id)];
     }
 
-    // ── 9. Final title-duplicate safety check (AI may have corrected it) ──
+    // ── 10. Final title-duplicate safety check (AI may have corrected it) ──
     const candidateSlug = generateSlug(finalTitle);
     const slugExists = await Movie.findOne({ slug: candidateSlug }).select("_id").lean();
     let slug = slugExists ? generateSlug(finalTitle, Date.now().toString()) : candidateSlug;
 
-    // ── 10. Create Movie ──────────────────────────────────────────────────
+    // ── 11. Create Movie ──────────────────────────────────────────────────
     const movie = await Movie.create({
       title:       finalTitle,
       slug,
@@ -288,7 +305,7 @@ async function tick() {
       status:      "published",
     });
 
-    // ── 11. Log to BotJob (uploads + failures only, never duplicates) ─────
+    // ── 12. Log to BotJob (uploads + failures only, never duplicates) ─────
     await BotJob.create({
       title:           movie.title,
       externalId:      foundMovie.externalId,
@@ -310,7 +327,7 @@ async function tick() {
       processedAt:     new Date(),
     });
 
-    // ── 12. Update stats ──────────────────────────────────────────────────
+    // ── 13. Update stats ──────────────────────────────────────────────────
     await BotConfig.updateOne(
       { _id: "singleton" },
       {
