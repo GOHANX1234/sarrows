@@ -286,7 +286,14 @@ async function tick() {
     const slugExists = await Movie.findOne({ slug: candidateSlug }).select("_id").lean();
     let slug = slugExists ? generateSlug(finalTitle, Date.now().toString()) : candidateSlug;
 
-    // ── 11. Create Movie ──────────────────────────────────────────────────
+    // ── 11. Hard DB duplicate guard (catches races / hot-reload wipes) ────
+    const alreadyInDB = await Movie.findOne({ externalId: foundMovie.externalId }).select("_id").lean();
+    if (alreadyInDB) {
+      console.log(`[MovieBot] Duplicate blocked at write time — "${foundMovie.title}" (${foundMovie.externalId}) already in DB`);
+      return;
+    }
+
+    // ── 12. Create Movie ──────────────────────────────────────────────────
     const movie = await Movie.create({
       title:       finalTitle,
       slug,
@@ -305,7 +312,7 @@ async function tick() {
       status:      "published",
     });
 
-    // ── 12. Log to BotJob (uploads + failures only, never duplicates) ─────
+    // ── 13. Log to BotJob (uploads + failures only, never duplicates) ─────
     await BotJob.create({
       title:           movie.title,
       externalId:      foundMovie.externalId,
@@ -327,7 +334,7 @@ async function tick() {
       processedAt:     new Date(),
     });
 
-    // ── 13. Update stats ──────────────────────────────────────────────────
+    // ── 14. Update stats ──────────────────────────────────────────────────
     await BotConfig.updateOne(
       { _id: "singleton" },
       {
