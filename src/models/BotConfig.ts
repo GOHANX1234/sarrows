@@ -19,6 +19,10 @@ const BotConfigSchema = new Schema(
     startedAt:         { type: Date,   default: null },
     stoppedAt:         { type: Date,   default: null },
 
+    // ── Auto-stop timer ────────────────────────────────────────────────────
+    stopAfterMs:    { type: Number, default: null },   // duration chosen by admin (ms)
+    scheduledStopAt:{ type: Date,   default: null },   // computed: startedAt + stopAfterMs
+
     // ── Discovery settings ─────────────────────────────────────────────────
     // Order matters: upcoming/now_playing have freshest content; popular is last
     sources: {
