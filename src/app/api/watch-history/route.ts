@@ -90,7 +90,7 @@ export async function GET(req: NextRequest) {
         if (ep) {
           content = {
             ...ep,
-            seriesDoc: ep.series ? seriesMap[ep.series.toString()] || null : null,
+            seriesInfo: ep.series ? seriesMap[ep.series.toString()] || null : null,
           };
         }
       }
