@@ -57,7 +57,7 @@ export default function TrendingRail({ items }: Props) {
           />
           <div className="absolute bottom-0 inset-x-0 p-3">
             <span className="badge bg-sarrows-red/90 text-white text-[10px] font-semibold mb-1.5 uppercase tracking-wide">
-              {item.type === "movie" ? "Movie" : "Anime"}
+              {item.type === "movie" ? "Movie" : item.type === "series" ? "Web Series" : "Anime"}
             </span>
             <p className="text-sm font-bold text-white leading-snug line-clamp-2">{item.title}</p>
           </div>
