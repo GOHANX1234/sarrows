@@ -262,7 +262,7 @@ function SourceSettings({ config, onSave }: { config: BotConfig; onSave: (cfg: B
 // ── History Table ─────────────────────────────────────────────────────────────
 const STATUS_TABS = ["all", "done", "duplicate", "failed"] as const;
 
-function HistoryTable() {
+function HistoryTable({ botEnabled }: { botEnabled: boolean }) {
   const [jobs, setJobs] = useState<BotJob[]>([]);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
@@ -292,11 +292,12 @@ function HistoryTable() {
 
   useEffect(() => { fetch_(page, statusFilter, query); }, [page, statusFilter]);
 
-  // Auto-refresh every 5 s
+  // Auto-refresh every 5 s — only while the bot is running
   useEffect(() => {
+    if (!botEnabled) return;
     const id = setInterval(() => fetch_(page, statusFilter, query), 5000);
     return () => clearInterval(id);
-  }, [page, statusFilter, query, fetch_]);
+  }, [botEnabled, page, statusFilter, query, fetch_]);
 
   async function clearHistory(status?: string) {
     setClearing(status ?? "all");
@@ -418,11 +419,13 @@ export default function BotClient({ initialConfig, initialStatusCounts }: Props)
     } catch {}
   }, []);
 
-  // Poll config every 5 s for live cursor updates
+  // Poll config every 5 s — only while the bot is running
   useEffect(() => {
+    if (pollingRef.current) clearInterval(pollingRef.current);
+    if (!config.enabled) return;
     pollingRef.current = setInterval(fetchConfig, 5000);
     return () => { if (pollingRef.current) clearInterval(pollingRef.current); };
-  }, [fetchConfig]);
+  }, [config.enabled, fetchConfig]);
 
   async function toggleBot() {
     setToggling(true);
@@ -546,9 +549,11 @@ export default function BotClient({ initialConfig, initialStatusCounts }: Props)
           <div className="flex items-center gap-2 mb-3">
             <Film className="w-4 h-4 text-gray-500" />
             <h2 className="text-sm font-bold text-white">Upload History</h2>
-            <span className="text-xs text-gray-600">auto-refreshes every 5s</span>
+            {config.enabled && (
+              <span className="text-xs text-gray-600">auto-refreshes every 5s</span>
+            )}
           </div>
-          <HistoryTable />
+          <HistoryTable botEnabled={config.enabled} />
         </div>
       </div>
     </div>
