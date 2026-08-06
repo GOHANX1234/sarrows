@@ -14,6 +14,7 @@ AUTH_SECRET = "sarrows-super-secret-key-change-in-production-2026"
 NEXTAUTH_SECRET = "sarrows-super-secret-key-change-in-production-2026"
 TMDB_API_KEY = "55708ca47d6a470c36d9137bec007064"
 PUBLIC_APP_URL = "https://sarrows.vercel.app"
+GROQ_API = "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"
 
 [nix]
 channel = "stable-25_05"
