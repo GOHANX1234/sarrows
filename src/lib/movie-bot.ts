@@ -94,6 +94,16 @@ async function tick() {
     const cfg = await BotConfig.findById("singleton").lean<any>();
     if (!cfg?.enabled) return;
 
+    // ── 1b. Auto-stop if scheduled duration has elapsed ───────────────────
+    if (cfg.scheduledStopAt && new Date(cfg.scheduledStopAt) <= new Date()) {
+      await BotConfig.updateOne(
+        { _id: "singleton" },
+        { $set: { enabled: false, stoppedAt: new Date(), scheduledStopAt: null } }
+      );
+      console.log(`[MovieBot] Auto-stopped — scheduled duration elapsed`);
+      return;
+    }
+
     // ── 2. Refresh known-ID set ────────────────────────────────────────────
     await refreshKnownIds(Movie);
 
