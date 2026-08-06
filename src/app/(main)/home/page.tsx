@@ -35,9 +35,10 @@ async function getHomeData() {
   const trendingAnime = seriesByViews.filter((s: any) => s.type === "anime");
   const trendingWebSeries = seriesByViews.filter((s: any) => s.type === "series");
 
-  // Hero items: top 5 featured with images
-  const heroItems = [...moviesByViews.slice(0, 3), ...seriesByViews.slice(0, 2)]
+  // Hero items: latest 5 uploads with images (movies + anime + series combined, sorted by createdAt)
+  const heroItems = [...moviesByDate, ...animeByDate, ...seriesByDate]
     .filter((i: any) => i.bannerUrl || i.posterUrl)
+    .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     .slice(0, 5);
 
   // Mid-page Spotlight: pick a top anime or series or movie
