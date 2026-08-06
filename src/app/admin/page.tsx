@@ -6,19 +6,21 @@ import Movie from "@/models/Movie";
 import Series from "@/models/Series";
 import User from "@/models/User";
 import Request from "@/models/Request";
-import { Film, Tv, Users, Plus, Settings, UserCheck, Inbox } from "lucide-react";
+import { Film, Tv, Users, Plus, Settings, UserCheck, Inbox, MonitorPlay } from "lucide-react";
 
 async function getStats() {
   await connectDB();
-  const [totalMovies, totalSeries, totalUsers, publishedMovies, publishedSeries, pendingRequests] = await Promise.all([
+  const [totalMovies, totalAnime, totalWebSeries, totalUsers, publishedMovies, publishedAnime, publishedWebSeries, pendingRequests] = await Promise.all([
     Movie.countDocuments(),
-    Series.countDocuments(),
+    Series.countDocuments({ type: "anime" }),
+    Series.countDocuments({ type: "series" }),
     User.countDocuments(),
     Movie.countDocuments({ status: "published" }),
-    Series.countDocuments({ publishStatus: "published" }),
+    Series.countDocuments({ type: "anime", publishStatus: "published" }),
+    Series.countDocuments({ type: "series", publishStatus: "published" }),
     Request.countDocuments({ status: "pending" }),
   ]);
-  return { totalMovies, totalSeries, totalUsers, publishedMovies, publishedSeries, pendingRequests };
+  return { totalMovies, totalAnime, totalWebSeries, totalUsers, publishedMovies, publishedAnime, publishedWebSeries, pendingRequests };
 }
 
 export default async function AdminDashboard() {
@@ -36,12 +38,21 @@ export default async function AdminDashboard() {
     },
     {
       label: "Anime",
-      value: stats.totalSeries,
-      sub: `${stats.publishedSeries} published`,
+      value: stats.totalAnime,
+      sub: `${stats.publishedAnime} published`,
       icon: Tv,
       color: "text-purple-400",
       bg: "rgba(168,85,247,0.08)",
       border: "rgba(168,85,247,0.18)",
+    },
+    {
+      label: "Web Series",
+      value: stats.totalWebSeries,
+      sub: `${stats.publishedWebSeries} published`,
+      icon: MonitorPlay,
+      color: "text-pink-400",
+      bg: "rgba(236,72,153,0.08)",
+      border: "rgba(236,72,153,0.18)",
     },
     {
       label: "Users",
@@ -79,8 +90,8 @@ export default async function AdminDashboard() {
         <p className="text-gray-500 text-sm mt-0.5">Platform overview</p>
       </div>
 
-      {/* Stats — 2×2 on mobile, 4-col on lg */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+      {/* Stats — 2-col on mobile, 3-col on md, 5-col on lg */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 mb-6">
         {cards.map((c) => (
           <div
             key={c.label}
