@@ -62,7 +62,7 @@ export async function GET(req: NextRequest) {
     ];
     const seriesDocs = seriesIds.length
       ? await Series.find({ _id: { $in: seriesIds } })
-          .select("title slug posterUrl")
+          .select("title slug posterUrl type")
           .lean()
       : [];
 
@@ -90,7 +90,7 @@ export async function GET(req: NextRequest) {
         if (ep) {
           content = {
             ...ep,
-            seriesInfo: ep.series ? seriesMap[ep.series.toString()] || null : null,
+            seriesDoc: ep.series ? seriesMap[ep.series.toString()] || null : null,
           };
         }
       }
