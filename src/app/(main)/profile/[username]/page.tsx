@@ -38,7 +38,7 @@ export default async function ProfilePage({ params }: Props) {
     const seriesIds = [...new Set(episodeEntries.map((h) => String((h.targetId as any).series)))];
 
     const seriesDocs = seriesIds.length
-      ? await Series.find({ _id: { $in: seriesIds } }).select("slug title posterUrl").lean()
+      ? await Series.find({ _id: { $in: seriesIds } }).select("slug title posterUrl type").lean()
       : [];
 
     const seriesMap = Object.fromEntries(seriesDocs.map((s: any) => [String(s._id), s]));
