@@ -69,7 +69,12 @@ export async function PATCH(req: NextRequest) {
 
     // Update which TMDB sources to pull from
     if (Array.isArray(body.sources) && body.sources.length > 0) {
-      const valid = ["popular", "trending_day", "trending_week", "top_rated", "now_playing", "upcoming"];
+      const valid = [
+        "popular", "trending_day", "trending_week", "top_rated", "now_playing", "upcoming",
+        "genre_action", "genre_horror", "genre_comedy", "genre_thriller", "genre_scifi",
+        "genre_animation", "genre_drama", "genre_romance", "genre_crime", "genre_documentary",
+        "genre_adventure", "genre_fantasy", "genre_mystery", "genre_war",
+      ];
       update.sources = body.sources.filter((s: string) => valid.includes(s));
     }
 
