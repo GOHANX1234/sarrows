@@ -209,6 +209,7 @@ export interface TMDBDiscoveryResult {
     description: string;
     posterUrl: string | null;
     bannerUrl: string | null;
+    releaseDate: string | null; // full ISO date string e.g. "2024-03-15"
     releaseYear: number | null;
     rating: number;
   }>;
@@ -238,6 +239,7 @@ export async function fetchTMDBDiscoveryPage(
       description: m.overview,
       posterUrl: m.poster_path ? `${TMDB_IMG}${m.poster_path}` : null,
       bannerUrl: m.backdrop_path ? `${TMDB_IMG_ORIGINAL}${m.backdrop_path}` : null,
+      releaseDate: m.release_date || null,
       releaseYear: m.release_date ? parseInt(m.release_date.split("-")[0]) : null,
       rating: m.vote_average,
     })),
