@@ -84,7 +84,7 @@ export async function verifyMovieWithAI(
     const client = getClient();
 
     const completion = await client.chat.completions.create({
-      model: "qwen/qwen3.6-27b",
+      model: "llama-3.3-70b-versatile",
       messages: [
         { role: "system", content: SYSTEM_PROMPT },
         { role: "user", content: USER_PROMPT_TEMPLATE(input) },
