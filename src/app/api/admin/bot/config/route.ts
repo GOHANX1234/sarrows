@@ -52,6 +52,19 @@ export async function PATCH(req: NextRequest) {
     if (typeof body.enabled === "boolean") {
       update.enabled = body.enabled;
       update[body.enabled ? "startedAt" : "stoppedAt"] = new Date();
+      if (body.enabled) {
+        // Set auto-stop timer if a duration was provided
+        if (typeof body.stopAfterMs === "number" && body.stopAfterMs > 0) {
+          update.stopAfterMs = body.stopAfterMs;
+          update.scheduledStopAt = new Date(Date.now() + body.stopAfterMs);
+        } else {
+          update.stopAfterMs = null;
+          update.scheduledStopAt = null;
+        }
+      } else {
+        // Clear timer when manually stopped
+        update.scheduledStopAt = null;
+      }
     }
 
     // Update which TMDB sources to pull from
