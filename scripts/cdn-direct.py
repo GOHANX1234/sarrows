@@ -9,9 +9,10 @@ Usage:
 
 Output:
     - prints the direct master.m3u8 URL (signed for YOUR ip, ~2h expiry)
-    - writes <lang>.m3u8 next to the script: a copy of the master playlist
-      with your language flagged DEFAULT=YES and all URIs made absolute —
-      open this file in VLC and it starts on your chosen dub.
+    - writes <lang>.m3u8 next to the script: the master playlist with only
+      your chosen audio language kept (flagged DEFAULT=YES) and all URIs
+      made absolute — play this file in mpv/VLC for video in your dub.
+      Re-run and pick another language to get a different dub.
 
 Requires: Python 3.8+ (standard library only — no pip installs).
 """
@@ -137,29 +138,30 @@ def main() -> None:
     if selected:
         out_path = Path(f"{selected}.m3u8")
 
+        # Keep only the chosen audio rendition (flagged DEFAULT=YES) and drop
+        # the others. The video variants stay untouched. Players that handle
+        # multi-rendition playlists poorly (notably VLC) otherwise latch onto
+        # the default audio rendition alone and play audio-only.
         rewritten = []
         for line in playlist.splitlines():
+            if AUDIO_LINE_RE.match(line):
+                if f'LANGUAGE="{selected}"' not in line:
+                    continue  # drop other audio languages
+                line = line.replace("DEFAULT=NO", "DEFAULT=YES")
             # Root-relative URIs must become absolute in a local file.
             if line.startswith("/"):
                 line = f"https://{host}{line}"
             else:
                 line = line.replace('URI="/', f'URI="https://{host}/')
-            if AUDIO_LINE_RE.match(line) and f'LANGUAGE="{selected}"' in line:
-                line = line.replace("DEFAULT=NO", "DEFAULT=YES")
             rewritten.append(line)
         out_path.write_text("\n".join(rewritten) + "\n", encoding="utf-8")
 
-        audio_uri = ""
-        for line in rewritten:
-            if AUDIO_LINE_RE.match(line) and f'LANGUAGE="{selected}"' in line:
-                m = re.search(r'URI="([^"]*)"', line)
-                if m:
-                    audio_uri = m.group(1)
-
-        print(f"\n✅ saved: {out_path.resolve()} — open it in VLC (Media → Open File), starts in {selected}")
-        print("   (other languages remain switchable via VLC's Audio → Audio Track)")
-        print(f"\n   {selected} audio track URL (standalone, audio-only):")
-        print(f"     {audio_uri}")
+        print(f"\n✅ saved: {out_path.resolve()}")
+        print(f"   Video + {selected} audio, all qualities. Play it with:")
+        print(f"     mpv  {out_path}          (best — pkg install mpv on Termux)")
+        print(f"     vlc  {out_path}")
+        print("   Note: if VLC still plays audio-only, use mpv — VLC's HLS")
+        print("   handling of audio renditions is buggy.")
     else:
         print("→ Keeping the playlist's default language order; use the master URL above.")
 
